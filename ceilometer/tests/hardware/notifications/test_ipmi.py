@@ -663,17 +663,38 @@ class TestNotifications(test.BaseTestCase):
         * a name composed from 'hardware.ipmi.' and 'temperature'
         * a volume from the first chunk of the Sensor Reading
         * a unit from the last chunk of the Sensor Reading
+        * some readings are skipped if the value is 'Disabled'
         """
         processor = ipmi.TemperatureSensorNotification(None)
         counters = dict([(counter.resource_id, counter) for counter in
                          processor.process_notification(SENSOR_DATA)])
 
-        self.assertEqual(len(counters), 11,
-                         'expected 11 temperature readings')
+        self.assertEqual(len(counters), 10,
+                         'expected 10 temperature readings')
         resource_id = (
             'f4982fd2-2f2b-4bb5-9aff-48aac801d1ad-dimm_gh_vr_temp_(0x3b)'
         )
         test_counter = counters[resource_id]
         self.assertEqual(test_counter.volume, '26')
+        self.assertEqual(test_counter.unit, 'C')
         self.assertEqual(test_counter.type, sample.TYPE_GAUGE)
         self.assertEqual(test_counter.name, 'hardware.ipmi.temperature')
+
+    def test_ipmi_current_notification(self):
+        """A single current reading is effectively the same as temperature,
+        modulo "current".
+        """
+        processor = ipmi.CurrentSensorNotification(None)
+        counters = dict([(counter.resource_id, counter) for counter in
+                         processor.process_notification(SENSOR_DATA)])
+
+        self.assertEqual(len(counters), 1,
+                         'expected 1 current reading')
+        resource_id = (
+            'f4982fd2-2f2b-4bb5-9aff-48aac801d1ad-avg_power_(0x2e)'
+        )
+        test_counter = counters[resource_id]
+        self.assertEqual(test_counter.volume, '130')
+        self.assertEqual(test_counter.unit, 'Watts')
+        self.assertEqual(test_counter.type, sample.TYPE_GAUGE)
+        self.assertEqual(test_counter.name, 'hardware.ipmi.current')

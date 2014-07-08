@@ -28,7 +28,8 @@ LOG = log.getLogger(__name__)
 
 class SensorNotification(plugin.NotificationBase):
 
-    event_types = ['hardware.*']
+    sample_type = sample.TYPE_GAUGE
+    event_types = ['hardware.ipmi.*']
     metric = None
 
     @staticmethod
@@ -42,11 +43,18 @@ class SensorNotification(plugin.NotificationBase):
         except KeyError:
             return []
 
+    def _validate_reading(self, data):
+        return data != 'Disabled'
+
     def _transform_id(self, data):
-        return data
+        return data.lower().replace(' ', '_')
 
     def _transform_reading(self, data):
-        return data
+        return data.split(' ', 1)[0]
+
+    def _extract_unit(self, data):
+        print 'data', data
+        return data.rsplit(' ', 1)[-1]
 
     def _package_payload(self, message, payload):
         info = {}
@@ -56,6 +64,7 @@ class SensorNotification(plugin.NotificationBase):
                                              payload['Sensor ID']))
         info['timestamp'] = str(timeutils.parse_strtime(
             message['timestamp'], '%Y%m%d%H%M%S'))
+        # NOTE(chdent): No, really, I don't know what this is.
         info['event_type'] = 'I DO NOT KNOW'
         info['payload'] = payload
         return info
@@ -64,27 +73,23 @@ class SensorNotification(plugin.NotificationBase):
         payloads = self._get_sample(message)
         for payload in payloads:
             info = self._package_payload(message, payload)
-            yield sample.Sample.from_notification(
-                name='hardware.ipmi.%s' % self.metric.lower(),
-                type=self.sample_type,
-                unit=self._extract_unit(info['payload']['Sensor Reading']),
-                volume=self._transform_reading(
-                    info['payload']['Sensor Reading']),
-                user_id=None,
-                project_id=None,
-                resource_id=info['resource_id'],
-                message=info)
+            if self._validate_reading(info['payload']['Sensor Reading']):
+                yield sample.Sample.from_notification(
+                    name='hardware.ipmi.%s' % self.metric.lower(),
+                    type=self.sample_type,
+                    unit=self._extract_unit(
+                        info['payload']['Sensor Reading']),
+                    volume=self._transform_reading(
+                        info['payload']['Sensor Reading']),
+                    user_id=None,
+                    project_id=None,
+                    resource_id=info['resource_id'],
+                    message=info)
 
 
 class TemperatureSensorNotification(SensorNotification):
     metric = 'Temperature'
-    sample_type = sample.TYPE_GAUGE
 
-    def _transform_id(self, data):
-        return data.lower().replace(' ', '_')
 
-    def _transform_reading(self, data):
-        return data.split(' ', 1)[0]
-
-    def _extract_unit(self, data):
-        return data.rsplit(' ', 1)[0]
+class CurrentSensorNotification(SensorNotification):
+    metric = 'Current'
