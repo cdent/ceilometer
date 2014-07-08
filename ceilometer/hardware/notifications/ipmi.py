@@ -27,10 +27,23 @@ LOG = log.getLogger(__name__)
 
 
 class SensorNotification(plugin.NotificationBase):
+    """A generic class for extracting samples from sensor data notifications.
+
+    A notification message can contain multiple samples from multiple
+    sensors, all with the same basic structure: the volume for the sample
+    is found as part of the value of a 'Sensor Reading' key. The unit
+    is in the same value.
+
+    Subclasses exist solely to allow flexibility with stevedore configuration.
+    """
 
     sample_type = sample.TYPE_GAUGE
     event_types = ['hardware.ipmi.*']
-    metric = None
+
+    @property
+    def metric(self):
+        """Calculate metric name from class name."""
+        return self.__class__.__name__.replace('SensorNotification', '')
 
     @staticmethod
     def get_targets(conf):
@@ -65,6 +78,7 @@ class SensorNotification(plugin.NotificationBase):
             message['timestamp'], '%Y%m%d%H%M%S'))
         # NOTE(chdent): No, really, I don't know what this is.
         info['event_type'] = 'I DO NOT KNOW'
+        # NOTE(chdent): How much of the payload should we keep?
         info['payload'] = payload
         return info
 
@@ -87,16 +101,16 @@ class SensorNotification(plugin.NotificationBase):
 
 
 class TemperatureSensorNotification(SensorNotification):
-    metric = 'Temperature'
+    pass
 
 
 class CurrentSensorNotification(SensorNotification):
-    metric = 'Current'
+    pass
 
 
 class FanSensorNotification(SensorNotification):
-    metric = 'Fan'
+    pass
 
 
 class VoltageSensorNotification(SensorNotification):
-    metric = 'Voltage'
+    pass
