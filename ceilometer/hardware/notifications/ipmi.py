@@ -18,13 +18,13 @@
 notification events.
 """
 
-from ceilometer import plugin
-from ceilometer.openstack.common.gettextutils import _
 from ceilometer.openstack.common import log
 from ceilometer.openstack.common import timeutils
+from ceilometer import plugin
 from ceilometer import sample
 
 LOG = log.getLogger(__name__)
+
 
 class SensorNotification(plugin.NotificationBase):
 
@@ -33,7 +33,7 @@ class SensorNotification(plugin.NotificationBase):
 
     @staticmethod
     def get_targets(conf):
-        return [] #  Nothing for now
+        return []  # Nothing for now
 
     def _get_sample(self, message):
         try:
@@ -68,11 +68,13 @@ class SensorNotification(plugin.NotificationBase):
                                              info['payload']['Sensor ID'])),
                 type=self.sample_type,
                 unit=self.unit,
-                volume=self._transform_reading(info['payload']['Sensor Reading']),
+                volume=self._transform_reading(
+                    info['payload']['Sensor Reading']),
                 user_id=None,
                 project_id=None,
                 resource_id=info['resource_id'],
                 message=info)
+
 
 class TemperatureSensorNotification(SensorNotification):
     metric = 'Temperature'
