@@ -675,7 +675,7 @@ class TestNotifications(test.BaseTestCase):
             'f4982fd2-2f2b-4bb5-9aff-48aac801d1ad-dimm_gh_vr_temp_(0x3b)'
         )
         test_counter = counters[resource_id]
-        self.assertEqual(test_counter.volume, '26')
+        self.assertEqual(test_counter.volume, 26.0)
         self.assertEqual(test_counter.unit, 'C')
         self.assertEqual(test_counter.type, sample.TYPE_GAUGE)
         self.assertEqual(test_counter.name, 'hardware.ipmi.temperature')
@@ -694,7 +694,45 @@ class TestNotifications(test.BaseTestCase):
             'f4982fd2-2f2b-4bb5-9aff-48aac801d1ad-avg_power_(0x2e)'
         )
         test_counter = counters[resource_id]
-        self.assertEqual(test_counter.volume, '130')
+        self.assertEqual(test_counter.volume, 130.0)
         self.assertEqual(test_counter.unit, 'Watts')
         self.assertEqual(test_counter.type, sample.TYPE_GAUGE)
         self.assertEqual(test_counter.name, 'hardware.ipmi.current')
+
+    def test_ipmi_fan_notification(self):
+        """A single fan reading is effectively the same as temperature,
+        modulo "fan".
+        """
+        processor = ipmi.FanSensorNotification(None)
+        counters = dict([(counter.resource_id, counter) for counter in
+                         processor.process_notification(SENSOR_DATA)])
+
+        self.assertEqual(len(counters), 12,
+                         'expected 12 fan readings')
+        resource_id = (
+            'f4982fd2-2f2b-4bb5-9aff-48aac801d1ad-fan_4a_tach_(0x46)'
+        )
+        test_counter = counters[resource_id]
+        self.assertEqual(test_counter.volume, 6900.0)
+        self.assertEqual(test_counter.unit, 'RPM')
+        self.assertEqual(test_counter.type, sample.TYPE_GAUGE)
+        self.assertEqual(test_counter.name, 'hardware.ipmi.fan')
+
+    def test_ipmi_voltage_notification(self):
+        """A single voltage reading is effectively the same as temperature,
+        modulo "voltage".
+        """
+        processor = ipmi.VoltageSensorNotification(None)
+        counters = dict([(counter.resource_id, counter) for counter in
+                         processor.process_notification(SENSOR_DATA)])
+
+        self.assertEqual(len(counters), 4,
+                         'expected 4 volate readings')
+        resource_id = (
+            'f4982fd2-2f2b-4bb5-9aff-48aac801d1ad-planar_vbat_(0x1c)'
+        )
+        test_counter = counters[resource_id]
+        self.assertEqual(test_counter.volume, 3.137)
+        self.assertEqual(test_counter.unit, 'Volts')
+        self.assertEqual(test_counter.type, sample.TYPE_GAUGE)
+        self.assertEqual(test_counter.name, 'hardware.ipmi.voltage')

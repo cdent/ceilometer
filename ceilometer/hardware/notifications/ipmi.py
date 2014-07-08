@@ -50,10 +50,9 @@ class SensorNotification(plugin.NotificationBase):
         return data.lower().replace(' ', '_')
 
     def _transform_reading(self, data):
-        return data.split(' ', 1)[0]
+        return float(data.split(' ', 1)[0])
 
     def _extract_unit(self, data):
-        print 'data', data
         return data.rsplit(' ', 1)[-1]
 
     def _package_payload(self, message, payload):
@@ -93,3 +92,11 @@ class TemperatureSensorNotification(SensorNotification):
 
 class CurrentSensorNotification(SensorNotification):
     metric = 'Current'
+
+
+class FanSensorNotification(SensorNotification):
+    metric = 'Fan'
+
+
+class VoltageSensorNotification(SensorNotification):
+    metric = 'Voltage'
