@@ -51,7 +51,9 @@ class SensorNotification(plugin.NotificationBase):
     def _package_payload(self, message, payload):
         info = {}
         info['publisher_id'] = message['publisher_id']
-        info['resource_id'] = message['instance_uuid']
+        info['resource_id'] = '%s-%s' % (message['node_uuid'],
+                                         self._transform_id(
+                                             payload['Sensor ID']))
         info['timestamp'] = str(timeutils.parse_strtime(
             message['timestamp'], '%Y%m%d%H%M%S'))
         info['event_type'] = 'I DO NOT KNOW'
@@ -63,11 +65,9 @@ class SensorNotification(plugin.NotificationBase):
         for payload in payloads:
             info = self._package_payload(message, payload)
             yield sample.Sample.from_notification(
-                name='hardware.%s.%s' % (self.metric.lower(),
-                                         self._transform_id(
-                                             info['payload']['Sensor ID'])),
+                name='hardware.ipmi.%s' % self.metric.lower(),
                 type=self.sample_type,
-                unit=self.unit,
+                unit=self._extract_unit(info['payload']['Sensor Reading']),
                 volume=self._transform_reading(
                     info['payload']['Sensor Reading']),
                 user_id=None,
@@ -79,10 +79,12 @@ class SensorNotification(plugin.NotificationBase):
 class TemperatureSensorNotification(SensorNotification):
     metric = 'Temperature'
     sample_type = sample.TYPE_GAUGE
-    unit = 'C'
 
     def _transform_id(self, data):
         return data.lower().replace(' ', '_')
 
     def _transform_reading(self, data):
         return data.split(' ', 1)[0]
+
+    def _extract_unit(self, data):
+        return data.rsplit(' ', 1)[0]

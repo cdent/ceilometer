@@ -656,15 +656,24 @@ SENSOR_DATA = {
 class TestNotifications(test.BaseTestCase):
 
     def test_ipmi_temperature_notification(self):
+        """Based on the above test data the expected sample for a single
+        temperature reading has::
+
+        * a resource_id composed from the node_uuid Sensor ID
+        * a name composed from 'hardware.ipmi.' and 'temperature'
+        * a volume from the first chunk of the Sensor Reading
+        * a unit from the last chunk of the Sensor Reading
+        """
         processor = ipmi.TemperatureSensorNotification(None)
-        counters = dict([(counter.name, counter) for counter in
+        counters = dict([(counter.resource_id, counter) for counter in
                          processor.process_notification(SENSOR_DATA)])
 
-        self.assertEqual(
-            counters['hardware.temperature.dimm_gh_vr_temp_(0x3b)'].volume,
-            '26'
+        self.assertEqual(len(counters), 11,
+                         'expected 11 temperature readings')
+        resource_id = (
+            'f4982fd2-2f2b-4bb5-9aff-48aac801d1ad-dimm_gh_vr_temp_(0x3b)'
         )
-        self.assertEqual(
-            counters['hardware.temperature.dimm_gh_vr_temp_(0x3b)'].type,
-            sample.TYPE_GAUGE
-        )
+        test_counter = counters[resource_id]
+        self.assertEqual(test_counter.volume, '26')
+        self.assertEqual(test_counter.type, sample.TYPE_GAUGE)
+        self.assertEqual(test_counter.name, 'hardware.ipmi.temperature')
